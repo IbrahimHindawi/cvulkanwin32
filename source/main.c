@@ -4,7 +4,11 @@
 
 #include <windows.h>
 #include "core.h"
+
 #include <vulkan/vulkan.h>
+#define VK_USE_PLATFORM_WIN32_KHR 1
+#include <vulkan/vulkan_win32.h>
+#include <vulkan/vulkan_core.h>
 
 #define assert(expr) if (!(expr)) { __debugbreak(); }
 
@@ -35,7 +39,11 @@ LPSTR GetLastErrorAsString()
     return messageBuffer;
 }
 
-void SetupVulkanInstance(HWND window_handle, VkInstance *outInstance, VkSurfaceKHR *outSurface) {
+VkBool32 VKAPI_PTR DebugReportCallback(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objectType, uint64_t object, size_t location, int32_t messageCode, const char* pLayerPrefix, const char* pMessage, void* pUserData) {
+    return true;
+}
+
+void SetupVulkanInstance(HWND window_handle, VkInstance *out_instance, VkSurfaceKHR *out_surface) {
     u32 count = 0;
     VkResult result = vkEnumerateInstanceLayerProperties(&count, NULL);
     assert(result == VK_SUCCESS);
@@ -64,7 +72,60 @@ void SetupVulkanInstance(HWND window_handle, VkInstance *outInstance, VkSurfaceK
         app_info.apiVersion = VK_API_VERSION_1_0;
 
         VkInstanceCreateInfo instance_create_info = {0};
+        instance_create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+        instance_create_info.flags = 0;
+        instance_create_info.pNext = 0;
+        instance_create_info.pApplicationInfo = &app_info;
+        instance_create_info.enabledLayerCount= 1;
+        instance_create_info.ppEnabledLayerNames = layers;
+        instance_create_info.enabledExtensionCount = 2;
+#ifdef ENABLE_VULKAN_DEBUG_CALLBACK
+        instance_create_info.enabledExtensionCount = 3;
+#endif
+        instance_create_info.ppEnabledExtensionNames = extensions;
+
+        VkResult result = vkCreateInstance(&instance_create_info, NULL, out_instance);
+        assert(result == VK_SUCCESS); // failed to create VK instance!
+        assert(*out_instance != NULL);
+#ifdef ENABLE_VULKAN_DEBUG_CALLBACK
+#endif
     }
+    HINSTANCE hInstance = GetModuleHandle(NULL);
+    VkWin32SurfaceCreateInfoKHR surface_create_info = {0};
+    surface_create_info.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+    surface_create_info.hinstance = hInstance;
+    surface_create_info.hwnd = window_handle;
+    assert(*out_surface == NULL);
+
+    result = vkCreateWin32SurfaceKHR(*out_instance, &surface_create_info, NULL, out_surface);
+    assert(result == VK_SUCCESS); // could not crate surface
+    assert(out_surface != NULL); // could not crate surface
+
+// #define ENABLE_VULKAN_DEBUG_CALLBACK
+#ifdef ENABLE_VULKAN_DEBUG_CALLBACK
+{
+    VkDebugReportCallbackEXT error_callback = VK_NULL_HANDLE;
+    VkDebugReportCallbackEXT warning_callback = VK_NULL_HANDLE;
+    PFN_vkCreateDebugReportCallbackEXT vk_create_debug_report_callback_ext = VK_NULL_HANDLE;
+    *(void **)&vk_create_debug_report_callback_ext = vkGetInstanceProcAddr(*out_instance, "vkCreateDebugReportCallbackEXT");
+    assert(vk_create_debug_report_callback_ext);
+
+    VkDebugReportCallbackCreateInfoEXT callback_create_info = {0};
+    callback_create_info.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT;
+    callback_create_info.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT;
+    callback_create_info.pfnCallback = &DebugReportCallback;
+
+    VkResult result = vkCreateDebugReportCallbackEXT(*out_instance, &callback_create_info, NULL, &error_callback);
+    assert(result);
+    callback_create_info.flags = VK_DEBUG_REPORT_WARNING_BIT_EXT | VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT;
+    callback_create_info.pfnCallback = &DebugReportCallback;
+
+    result = vkCreateDebugReportCallbackEXT(*out_instance, &callback_create_info, NULL, &warning_callback);
+    assert(result);
+
+}
+#endif
+
 }
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t *pCmdLine, int nCmdShow) {
@@ -94,9 +155,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t *pCmdL
     }
     ShowWindow(window_handle, nCmdShow);
 
-    VkInstance outInstance = NULL;
-    VkSurfaceKHR outSurface = NULL;
-    SetupVulkanInstance(window_handle, &outInstance, &outSurface);
+    VkInstance out_instance = NULL;
+    VkSurfaceKHR out_surface = NULL;
+    SetupVulkanInstance(window_handle, &out_instance, &out_surface);
 
     MSG message = {0};
     while (GetMessage(&message, NULL, 0, 0) > 0) {
