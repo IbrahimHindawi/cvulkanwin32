@@ -1,75 +1,108 @@
+#ifndef UNICODE
+#   define UNICODE
+#endif
+
+#include <windows.h>
 #include "core.h"
-#include "fileops.h"
+#include <vulkan/vulkan.h>
 
-// #include "hkArray.h"
-#include "hkArrayT-primitives.h"
+#define assert(expr) if (!(expr)) { __debugbreak(); }
 
-# define N 1024
-u8 block[N];
-
-int main(int argc, char *argv[]) {
-    i32 res = 0;
-
-    hkArrayf32 arrayf32 = hkArrayf32Create(8);
-    for( int i = 0; i < arrayf32.length; ++i) {
-        arrayf32.data[i] = i;
+LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+    switch(uMsg) {
+        case WM_DESTROY:
+            PostQuitMessage(0);
+            return 0;
+        case WM_PAINT: {
+            PAINTSTRUCT ps;
+            HDC hdc = BeginPaint(hwnd, &ps);
+            FillRect(hdc, &ps.rcPaint, (HBRUSH)(COLOR_WINDOW+1));
+            EndPaint(hwnd, &ps);
+        }
+        return 0;
     }
-    res = hkArrayf32IsEmpty(&arrayf32);
-    printf("%d\n", res);
-    hkArrayf32Destroy(&arrayf32);
+    return DefWindowProc(hwnd, uMsg, wParam, lParam);
+}
 
-    hkArrayi32 arrayi32 = hkArrayi32Create(8);
-    for( int i = 0; i < arrayi32.length; ++i) {
-        arrayi32.data[i] = i;
+LPSTR GetLastErrorAsString()
+{
+    DWORD errorMessageID = GetLastError();
+    if(errorMessageID == 0) {
+        return NULL;
     }
-    res = hkArrayi32IsEmpty(&arrayi32);
-    printf("%d\n", res);
-    hkArrayi32Destroy(&arrayi32);
+    LPSTR messageBuffer = NULL;
+    size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
+    return messageBuffer;
+}
 
-    hkArrayi64 arr = hkArrayi64Create(8);
-    hkArrayi64Destroy(&arr);
+void SetupVulkanInstance(HWND window_handle, VkInstance *outInstance, VkSurfaceKHR *outSurface) {
+    u32 count = 0;
+    VkResult result = vkEnumerateInstanceLayerProperties(&count, NULL);
+    assert(result == VK_SUCCESS);
+    assert(count > 0);
 
-    // fops_read("test.txt");
-    // printf("%s", fops_buffer);
+    VkLayerProperties *instance_layers = malloc(sizeof(*instance_layers) * count);
+    result = vkEnumerateInstanceLayerProperties(&count, instance_layers);
+    result = vkEnumerateInstanceExtensionProperties(NULL, &count, NULL);
+    assert(result == VK_SUCCESS);
+    assert(count > 0);
 
-    // initialize
-    u8 *mem = block;
-    u64 pos = (u64)block;
+    VkExtensionProperties *instance_extension = malloc(sizeof(*instance_extension) * count);
+    result = vkEnumerateInstanceExtensionProperties(NULL, &count, instance_extension);
+    const char **extension_names = malloc(sizeof(*extension_names) * count);
+    const char *layers[] = { "VK_LAYER_NV_optimus" };
+#ifdef ENABLE_VULKAN_DEBUG_CALLBACK
+    const char *extensions[] = { "VK_KHR_surface", "VK_KHR_win32_surface", "VK_EXT_debug_report" };
+#else
+    const char *extensions[] = { "VK_KHR_surface", "VK_KHR_win32_surface" };
+#endif
+    {
+        VkApplicationInfo app_info = {0};
+        app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+        app_info.pApplicationName = "Hello Vulkan";
+        app_info.engineVersion = 1;
+        app_info.apiVersion = VK_API_VERSION_1_0;
+
+        VkInstanceCreateInfo instance_create_info = {0};
+    }
+}
+
+int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t *pCmdLine, int nCmdShow) {
+
+    WNDCLASS window_class = {0};
+    const wchar_t class_name[] = L"Sample Window Class";
+    window_class.lpfnWndProc = WindowProc;
+    window_class.hInstance = hInstance;
+    window_class.lpszClassName = class_name;
+    window_class.style = CS_HREDRAW | CS_VREDRAW;
+
+    WORD r = RegisterClass(&window_class);
+    if(r == 0) {
+        DWORD error = GetLastError();
+        LPSTR errormessage = GetLastErrorAsString();
+        printf("%lu:%s\n", error, errormessage);
+        return 0;
+    }
+
     
-    // alloc 0
-    const i32 numslen = 32;
-    f32 *nums = (f32 *)pos;
-    pos += sizeof(f32) * numslen;
-    if ((pos - (u64)mem) > N) { return -1; }
-    for (i32 i = 0; i < numslen; ++i) {
-        nums[i] = (f32)i;
+    HWND window_handle = CreateWindowEx(0, class_name, L"Win64 Vulkan", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, NULL, NULL, hInstance, NULL);
+    if(window_handle == NULL) {
+        DWORD error = GetLastError();
+        LPSTR errormessage = GetLastErrorAsString();
+        printf("%lu:%s\n", error, errormessage);
+        return 0;
     }
+    ShowWindow(window_handle, nCmdShow);
 
-    // alloc 1
-    const i32 charlen = 0xFF;
-    i8 *chars = (i8 *)pos;
-    pos += sizeof(i8) * charlen;
-    if ((pos - (u64)mem) > N) { return -1; }
-    for (i32 i = 0; i < charlen; ++i) {
-        chars[i] = (i8)i;
+    VkInstance outInstance = NULL;
+    VkSurfaceKHR outSurface = NULL;
+    SetupVulkanInstance(window_handle, &outInstance, &outSurface);
+
+    MSG message = {0};
+    while (GetMessage(&message, NULL, 0, 0) > 0) {
+        TranslateMessage(&message);
+        DispatchMessage(&message);
     }
-
-    // dealloc all
-    pos = (u64)mem;
-
-    /*
-     * What is a Queue?
-     * first in first out
-     * .                    | empty
-     * 0                    | enqueue
-     * 0 -> 1               | enqueue
-     * 0 -> 1 -> 2          | enqueue
-     * 0 -> 1 -> 2 -> 3     | enqueue
-     * 1 -> 2 -> 3          | dequeue
-     * 2 -> 3               | dequeue
-     * 3                    | dequeue
-     * .                    | empty
-     */
 
     return 0;
 }

@@ -7,13 +7,20 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED True)
 
-add_executable(${PROJECT_NAME}
+add_executable(${PROJECT_NAME} WIN32
     source/main.c
     source/fileops.c
 )
+
+set(ENV{VULKAN_SDK} C:/VulkanSDK/1.3.283.0)
+find_package(Vulkan REQUIRED)
+
 include_directories(source/)
+include_directories(C:/VulkanSDK/1.3.283.0/Include)
+
 add_subdirectory(extern)
-target_link_libraries(${PROJECT_NAME} PUBLIC haikal)
+target_link_libraries(${PROJECT_NAME} haikal)
+target_link_libraries(${PROJECT_NAME} ${Vulkan_LIBRARIES})
 
 # find_package(cglm CONFIG REQUIRED)
 # target_link_libraries(${PROJECT_NAME} PRIVATE cglm::cglm)
