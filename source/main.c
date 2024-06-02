@@ -15,6 +15,8 @@
 
 #define assert(expr) if (!(expr)) { __debugbreak(); }
 
+#include "gen/hkNode_core.h"
+
 LRESULT CALLBACK windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch(uMsg) {
         case WM_DESTROY:

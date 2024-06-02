@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
+include(CMakePrintHelpers)
 
 set(ProjectNameParam "DefaultProject" CACHE STRING "Command line argument containing the project name.")
 project(${ProjectNameParam} VERSION 1.0 LANGUAGES C)
@@ -16,9 +17,10 @@ find_package(Vulkan REQUIRED)
 
 include_directories(source/)
 include_directories($ENV{VULKAN_SDK}/Include)
-include_directories(/extern/haikal/src/meta/gen)
+include_directories(extern/haikal/src/meta)
+# cmake_print_properties(TARGETS ${PROJECT_NAME} PROPERTIES LOCATION INCLUDE_DIRECTORIES)
 
-add_subdirectory(extern)
+# add_subdirectory(extern)
 target_link_libraries(${PROJECT_NAME} ${Vulkan_LIBRARIES})
 
 # find_package(cglm CONFIG REQUIRED)
