@@ -17,7 +17,7 @@ find_package(Vulkan REQUIRED)
 
 include_directories(source/)
 include_directories($ENV{VULKAN_SDK}/Include)
-include_directories(extern/haikal/src/meta)
+include_directories(extern/haikal/src)
 # cmake_print_properties(TARGETS ${PROJECT_NAME} PROPERTIES LOCATION INCLUDE_DIRECTORIES)
 
 add_subdirectory(extern)

@@ -1,23 +1,22 @@
 #ifndef UNICODE
 #   define UNICODE
 #endif
+#define NO_STDIO_REDIRECT
+
+#include <core.h>
 
 #include <windows.h>
-#include <stdio.h>
-#include "core.h"
 
 #include <vulkan/vulkan.h>
 #define VK_USE_PLATFORM_WIN32_KHR 1
 #include <vulkan/vulkan_win32.h>
 #include <vulkan/vulkan_core.h>
 
-#define NO_STDIO_REDIRECT
+#include "meta/gen/hkNode_core.h"
+#include "meta/gen/hkArray_VkLayerProperties.h"
+#include "meta/gen/hkArray_VkExtensionProperties.h"
 
 #define assert(expr) if (!(expr)) { __debugbreak(); }
-
-#include "gen/hkNode_core.h"
-#include "gen/hkArray_VkLayerProperties.h"
-#include "gen/hkArray_VkExtensionProperties.h"
 
 LRESULT CALLBACK windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch(uMsg) {
