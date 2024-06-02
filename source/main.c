@@ -16,6 +16,8 @@
 #define assert(expr) if (!(expr)) { __debugbreak(); }
 
 #include "gen/hkNode_core.h"
+#include "gen/hkArray_VkLayerProperties.h"
+#include "gen/hkArray_VkExtensionProperties.h"
 
 LRESULT CALLBACK windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch(uMsg) {
@@ -54,14 +56,14 @@ void setupVulkanInstance(HWND window_handle, VkInstance *out_instance, VkSurface
     assert(result == VK_SUCCESS);
     assert(count > 0);
 
-    VkLayerProperties *instance_layers = malloc(sizeof(*instance_layers) * count);
-    result = vkEnumerateInstanceLayerProperties(&count, instance_layers);
+    hkArray_VkLayerProperties instance_layers = hkarray_VkLayerProperties_create(count);
+    result = vkEnumerateInstanceLayerProperties(&count, instance_layers.data);
     result = vkEnumerateInstanceExtensionProperties(NULL, &count, NULL);
     assert(result == VK_SUCCESS);
     assert(count > 0);
 
-    VkExtensionProperties *instance_extension = malloc(sizeof(*instance_extension) * count);
-    result = vkEnumerateInstanceExtensionProperties(NULL, &count, instance_extension);
+    hkArray_VkExtensionProperties instance_extension = hkarray_VkExtensionProperties_create(count);
+    result = vkEnumerateInstanceExtensionProperties(NULL, &count, instance_extension.data);
     const char **extension_names = malloc(sizeof(*extension_names) * count);
     const char *layers[] = { "VK_LAYER_NV_optimus" };
 #ifdef ENABLE_VULKAN_DEBUG_CALLBACK
@@ -130,6 +132,8 @@ void setupVulkanInstance(HWND window_handle, VkInstance *out_instance, VkSurface
 
 }
 #endif
+    hkarray_VkLayerProperties_destroy(&instance_layers);
+    hkarray_VkExtensionProperties_destroy(&instance_extension);
 }
 
 void setupPhysicalDevice(VkInstance instance, VkPhysicalDevice *out_physical_device, VkDevice *out_device) {
