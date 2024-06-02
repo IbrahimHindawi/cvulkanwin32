@@ -12,11 +12,10 @@ add_executable(${PROJECT_NAME} WIN32
     source/fileops.c
 )
 
-set(ENV{VULKAN_SDK} C:/VulkanSDK/1.3.283.0)
 find_package(Vulkan REQUIRED)
 
 include_directories(source/)
-include_directories(C:/VulkanSDK/1.3.283.0/Include)
+include_directories($ENV{VULKAN_SDK}/Include)
 
 add_subdirectory(extern)
 target_link_libraries(${PROJECT_NAME} haikal)
