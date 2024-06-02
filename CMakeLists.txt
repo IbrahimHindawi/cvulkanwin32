@@ -26,6 +26,9 @@ target_link_libraries(${PROJECT_NAME} ${Vulkan_LIBRARIES})
 # find_package(cglm CONFIG REQUIRED)
 # target_link_libraries(${PROJECT_NAME} PRIVATE cglm::cglm)
 
+find_package(glfw3 CONFIG REQUIRED)
+target_link_libraries(${PROJECT_NAME} glfw)
+
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 endif()
 
