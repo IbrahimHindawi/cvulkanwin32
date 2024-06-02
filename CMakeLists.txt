@@ -16,9 +16,9 @@ find_package(Vulkan REQUIRED)
 
 include_directories(source/)
 include_directories($ENV{VULKAN_SDK}/Include)
+include_directories(/extern/haikal/src/meta/gen)
 
 add_subdirectory(extern)
-target_link_libraries(${PROJECT_NAME} haikal)
 target_link_libraries(${PROJECT_NAME} ${Vulkan_LIBRARIES})
 
 # find_package(cglm CONFIG REQUIRED)

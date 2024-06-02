@@ -56,3 +56,4 @@ build/
 .cache/
 vimsess
 scripts/psClang
+CMakeFiles/

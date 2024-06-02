@@ -3,6 +3,7 @@
 #endif
 
 #include <windows.h>
+#include <stdio.h>
 #include "core.h"
 
 #include <vulkan/vulkan.h>
@@ -10,9 +11,11 @@
 #include <vulkan/vulkan_win32.h>
 #include <vulkan/vulkan_core.h>
 
+#define NO_STDIO_REDIRECT
+
 #define assert(expr) if (!(expr)) { __debugbreak(); }
 
-LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+LRESULT CALLBACK windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch(uMsg) {
         case WM_DESTROY:
             PostQuitMessage(0);
@@ -28,7 +31,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
 
-LPSTR GetLastErrorAsString()
+LPSTR getLastErrorAsString()
 {
     DWORD errorMessageID = GetLastError();
     if(errorMessageID == 0) {
@@ -39,11 +42,11 @@ LPSTR GetLastErrorAsString()
     return messageBuffer;
 }
 
-VkBool32 VKAPI_PTR DebugReportCallback(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objectType, uint64_t object, size_t location, int32_t messageCode, const char* pLayerPrefix, const char* pMessage, void* pUserData) {
+VkBool32 VKAPI_PTR debugReportCallback(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objectType, uint64_t object, size_t location, int32_t messageCode, const char* pLayerPrefix, const char* pMessage, void* pUserData) {
     return true;
 }
 
-void SetupVulkanInstance(HWND window_handle, VkInstance *out_instance, VkSurfaceKHR *out_surface) {
+void setupVulkanInstance(HWND window_handle, VkInstance *out_instance, VkSurfaceKHR *out_surface) {
     u32 count = 0;
     VkResult result = vkEnumerateInstanceLayerProperties(&count, NULL);
     assert(result == VK_SUCCESS);
@@ -113,26 +116,56 @@ void SetupVulkanInstance(HWND window_handle, VkInstance *out_instance, VkSurface
     VkDebugReportCallbackCreateInfoEXT callback_create_info = {0};
     callback_create_info.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT;
     callback_create_info.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT;
-    callback_create_info.pfnCallback = &DebugReportCallback;
+    callback_create_info.pfnCallback = &debugReportCallback;
 
     VkResult result = vkCreateDebugReportCallbackEXT(*out_instance, &callback_create_info, NULL, &error_callback);
-    assert(result);
+    assert(result == VK_SUCCESS);
     callback_create_info.flags = VK_DEBUG_REPORT_WARNING_BIT_EXT | VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT;
-    callback_create_info.pfnCallback = &DebugReportCallback;
+    callback_create_info.pfnCallback = &debugReportCallback;
 
     result = vkCreateDebugReportCallbackEXT(*out_instance, &callback_create_info, NULL, &warning_callback);
-    assert(result);
+    assert(result == VK_SUCCESS);
 
 }
 #endif
-
 }
 
-int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t *pCmdLine, int nCmdShow) {
+void setupPhysicalDevice(VkInstance instance, VkPhysicalDevice *out_physical_device, VkDevice *out_device) {
+    u32 device_count = 0;
+    VkResult result = vkEnumeratePhysicalDevices(instance, &device_count, NULL);
+    assert(result == VK_SUCCESS);
+    assert(device_count != 0);
+
+    // get device handles
+    VkPhysicalDevice *physical_devices = malloc(sizeof(VkPhysicalDevice) * device_count);
+    result = vkEnumeratePhysicalDevices(instance, &device_count, physical_devices);
+    assert(result == VK_SUCCESS);
+    assert(device_count >= 0);
+
+    out_physical_device = &physical_devices[0];
+    for (u32 i = 0; i < device_count; ++i) {
+        VkPhysicalDeviceProperties device_properties;
+        memset(&device_properties, 0, sizeof(device_properties));
+        vkGetPhysicalDeviceProperties(physical_devices[i], &device_properties);
+        printf("Driver Version: %d.\n", device_properties.driverVersion);
+        printf("Device Name: %s.\n", device_properties.deviceName);
+        printf("API Version: %d.%d.%d.\n", 
+            (device_properties.apiVersion>>22)&0x3FF,
+            (device_properties.apiVersion>>12)&0x3FF,
+            (device_properties.apiVersion&0xFFF)
+        );
+    }
+
+    VkPhysicalDeviceMemoryProperties memory_properties;
+    vkGetPhysicalDeviceMemoryProperties(*out_physical_device, &memory_properties);
+}
+
+int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t *pCmdLine, int nCmdShow) {
+    OutputDebugString(L"Vulkan.\n");
 
     WNDCLASS window_class = {0};
     const wchar_t class_name[] = L"Sample Window Class";
-    window_class.lpfnWndProc = WindowProc;
+    window_class.lpfnWndProc = windowProc;
     window_class.hInstance = hInstance;
     window_class.lpszClassName = class_name;
     window_class.style = CS_HREDRAW | CS_VREDRAW;
@@ -140,7 +173,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t *pCmdL
     WORD r = RegisterClass(&window_class);
     if(r == 0) {
         DWORD error = GetLastError();
-        LPSTR errormessage = GetLastErrorAsString();
+        LPSTR errormessage = getLastErrorAsString();
         printf("%lu:%s\n", error, errormessage);
         return 0;
     }
@@ -149,7 +182,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t *pCmdL
     HWND window_handle = CreateWindowEx(0, class_name, L"Win64 Vulkan", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, NULL, NULL, hInstance, NULL);
     if(window_handle == NULL) {
         DWORD error = GetLastError();
-        LPSTR errormessage = GetLastErrorAsString();
+        LPSTR errormessage = getLastErrorAsString();
         printf("%lu:%s\n", error, errormessage);
         return 0;
     }
@@ -157,7 +190,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t *pCmdL
 
     VkInstance out_instance = NULL;
     VkSurfaceKHR out_surface = NULL;
-    SetupVulkanInstance(window_handle, &out_instance, &out_surface);
+    setupVulkanInstance(window_handle, &out_instance, &out_surface);
+
+    VkPhysicalDevice *out_physical_device = NULL;
+    VkDevice *out_device = NULL;
+    setupPhysicalDevice(out_instance, out_physical_device, out_device);
 
     MSG message = {0};
     while (GetMessage(&message, NULL, 0, 0) > 0) {
