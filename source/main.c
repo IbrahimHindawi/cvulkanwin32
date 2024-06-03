@@ -249,7 +249,7 @@ void setupPhysicalDevice() {
 
 // LOGICAL
 // https://docs.vulkan.org/tutorial/latest/03_Drawing_a_triangle/00_Setup/04_Logical_device_and_queues.html
-void createLogicalDevice() {
+void setupLogicalDevice() {
     bool has_value = false;
     QueueFamilyIndices indices = findQueueFamilies(g_physical_device, &has_value);
 
@@ -300,7 +300,9 @@ int main() {
     assert(window_handle != NULL);
 
     setupVulkanInstance();
+    setupDebugMessenger();
     setupPhysicalDevice();
+    setupLogicalDevice();
 
     while (!glfwWindowShouldClose(window_handle)) {
         glfwPollEvents();
