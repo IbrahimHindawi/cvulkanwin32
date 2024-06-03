@@ -29,6 +29,7 @@ VkInstance g_instance;
 VkPhysicalDevice g_physical_device = VK_NULL_HANDLE;
 VkDevice g_logical_device;
 VkQueue g_graphics_queue;
+VkDebugUtilsMessengerEXT g_debug_messenger;
 
 str validation_layers[] = { "VK_LAYER_KHRONOS_validation" };
 
@@ -226,6 +227,9 @@ void setupPhysicalDevice(VkInstance instance, VkPhysicalDevice *out_physical_dev
     assert(result == VK_SUCCESS);
 }
 
+// VALIDATION
+// https://docs.vulkan.org/tutorial/latest/03_Drawing_a_triangle/00_Setup/02_Validation_layers.html
+//
 bool checkValidationLayerSupport() {
     bool layer_found = false;
 
@@ -249,6 +253,64 @@ bool checkValidationLayerSupport() {
     }
     hkarray_VkLayerProperties_destroy(&available_layers);
     return layer_found;
+}
+
+hkArray_str getRequiredExtensions() {
+    u32 glfw_extension_count = 0;
+    strptr glfw_extensions = NULL;
+    glfw_extensions = glfwGetRequiredInstanceExtensions(&glfw_extension_count);
+    assert(glfw_extensions != NULL);
+
+    hkArray_str extensions = hkarray_str_create(glfw_extension_count);
+    for (int i = 0; i < extensions.length; ++i) {
+        u32 len = strlen(glfw_extensions[i]) + 1;
+        memcpy(&extensions.data[i], &glfw_extensions[i], len);
+    }
+    if (enable_validation_layers) {
+        extensions.data = hkarray_str_append_ptr(&extensions, VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+    }
+    return extensions;
+}
+
+static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) {
+    printf("validation layer: %s\n", pCallbackData->pMessage);
+    return VK_FALSE;
+}
+
+VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
+    PFN_vkCreateDebugUtilsMessengerEXT func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+    if (func != NULL) {
+        return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
+    } else {
+        return VK_ERROR_EXTENSION_NOT_PRESENT;
+    }
+}
+
+void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT *create_info) {
+    create_info->sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+    create_info->messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    create_info->messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+    create_info->pfnUserCallback = debugCallback;
+    create_info->pUserData = NULL; // Optional
+}
+
+void setupDebugMessenger() {
+    if(!enable_validation_layers) { 
+        return; 
+    }
+    VkDebugUtilsMessengerCreateInfoEXT create_info = {0};
+    populateDebugMessengerCreateInfo(&create_info);
+
+    if (CreateDebugUtilsMessengerEXT(g_instance, &create_info, NULL, &g_debug_messenger) != VK_SUCCESS) {
+        printf("failed to set up debug messenger!");
+    }
+}
+
+void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) {
+    PFN_vkDestroyDebugUtilsMessengerEXT func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+    if (func != NULL) {
+        func(instance, debugMessenger, pAllocator);
+    }
 }
 
 // INSTANCE
@@ -278,15 +340,26 @@ void setupVulkanInstance2() {
     create_info.enabledExtensionCount = glfwExtensionCount;
     create_info.ppEnabledExtensionNames = glfwExtensions;
 
+    VkDebugUtilsMessengerCreateInfoEXT debug_create_info = {0};
     if (enable_validation_layers) {
         create_info.enabledLayerCount = sizeofarray(validation_layers);
         create_info.ppEnabledLayerNames = validation_layers;
+
+        populateDebugMessengerCreateInfo(&debug_create_info);
+        create_info.pNext = (VkDebugUtilsMessengerCreateInfoEXT*) &debug_create_info;
     } else {
         create_info.enabledLayerCount = 0;
+        create_info.pNext = NULL;
     }
+
+    hkArray_str extensions = getRequiredExtensions();
+    create_info.enabledExtensionCount = extensions.length;
+    create_info.ppEnabledExtensionNames = extensions.data;
 
     VkResult result = vkCreateInstance(&create_info, NULL, &g_instance);
     assert(result == VK_SUCCESS);
+
+    hkarray_str_destroy(&extensions);
 }
 
 // PHYSICAL
@@ -514,6 +587,15 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nC
         glfwPollEvents();
     }
 
+    if (enable_validation_layers) {
+        DestroyDebugUtilsMessengerEXT(g_instance, g_debug_messenger, NULL);
+    }
+
+    vkDestroyInstance(g_instance, NULL);
+
+    glfwDestroyWindow(window_handle);
+
+    glfwTerminate();
     // MSG message = {0};
     // while (GetMessage(&message, NULL, 0, 0) > 0) {
     //     TranslateMessage(&message);
