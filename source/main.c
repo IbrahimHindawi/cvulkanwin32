@@ -30,6 +30,14 @@ VkPhysicalDevice g_physical_device = VK_NULL_HANDLE;
 VkDevice g_logical_device;
 VkQueue g_graphics_queue;
 
+str validation_layers[] = { "VK_LAYER_KHRONOS_validation" };
+
+#ifdef NDEBUG
+    const bool enable_validation_layers = false;
+#else
+    const bool enable_validation_layers = true;
+#endif
+
 static int __stdcall OutputDebugF(const char* Format, ...)
 {
 	va_list Args;
@@ -218,10 +226,39 @@ void setupPhysicalDevice(VkInstance instance, VkPhysicalDevice *out_physical_dev
     assert(result == VK_SUCCESS);
 }
 
+bool checkValidationLayerSupport() {
+    bool layer_found = false;
+
+    uint32_t layer_count;
+    vkEnumerateInstanceLayerProperties(&layer_count, NULL);
+
+    hkArray_VkLayerProperties available_layers = hkarray_VkLayerProperties_create(layer_count);
+    VkResult result = vkEnumerateInstanceLayerProperties(&layer_count, available_layers.data);
+    assert(result == VK_SUCCESS);
+
+    for (i32 validation_layer_count = 0; validation_layer_count < sizeofarray(validation_layers); ++validation_layer_count) {
+        for (i32 available_layer_count = 0; available_layer_count < available_layers.length; ++available_layer_count) {
+            if (strcmp(validation_layers[validation_layer_count], available_layers.data[available_layer_count].layerName) == 0) {
+                layer_found = true;
+                break;
+            }
+        }
+        if(!layer_found) {
+            layer_found = false;
+        }
+    }
+    hkarray_VkLayerProperties_destroy(&available_layers);
+    return layer_found;
+}
+
 // INSTANCE
 // https://docs.vulkan.org/tutorial/latest/03_Drawing_a_triangle/00_Setup/01_Instance.html
 //
 void setupVulkanInstance2() {
+    if (enable_validation_layers && !checkValidationLayerSupport()) {
+        // validation layers requested, but not available!
+        __debugbreak();
+    }
     VkApplicationInfo appInfo = {0};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     appInfo.pApplicationName = "Hello Triangle";
@@ -240,7 +277,13 @@ void setupVulkanInstance2() {
 
     create_info.enabledExtensionCount = glfwExtensionCount;
     create_info.ppEnabledExtensionNames = glfwExtensions;
-    create_info.enabledLayerCount = 0;
+
+    if (enable_validation_layers) {
+        create_info.enabledLayerCount = sizeofarray(validation_layers);
+        create_info.ppEnabledLayerNames = validation_layers;
+    } else {
+        create_info.enabledLayerCount = 0;
+    }
 
     VkResult result = vkCreateInstance(&create_info, NULL, &g_instance);
     assert(result == VK_SUCCESS);
