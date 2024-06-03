@@ -90,7 +90,7 @@ hkArray_str getRequiredExtensions() {
     assert(glfw_extensions != NULL);
 
     hkArray_str extensions = hkarray_str_create(0);
-    for (int i = 0; i < glfw_extension_count; ++i) {
+    for (u32 i = 0; i < glfw_extension_count; ++i) {
         // u32 len = (u32)strlen(glfw_extensions[i]) + 1;
         // memcpy(&extensions.data[i], &glfw_extensions[i], len);
         extensions.data = hkarray_str_append_ptr(&extensions, glfw_extensions[i]);
