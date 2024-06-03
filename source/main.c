@@ -22,6 +22,7 @@
 #include "meta/gen/hkArray_VkImage.h"
 #include "meta/gen/hkArray_VkImageView.h"
 #include "meta/gen/hkArray_VkQueueFamilyProperties.h"
+#include "meta/gen/hkArray_VkDeviceQueueCreateInfo.h"
 
 #define assert(expr) if (!(expr)) { __debugbreak(); }
 
@@ -31,6 +32,8 @@ VkPhysicalDevice g_physical_device = VK_NULL_HANDLE;
 VkDevice g_logical_device;
 VkQueue g_graphics_queue;
 VkDebugUtilsMessengerEXT g_debug_messenger;
+VkSurfaceKHR g_surface;
+VkQueue g_present_queue;
 
 str validation_layers[] = { "VK_LAYER_KHRONOS_validation" };
 
@@ -188,25 +191,45 @@ void setupVulkanInstance() {
 //
 structdef(QueueFamilyIndices) {
     u32 graphics_family;
+    u32 present_family;
 };
+
+void setupSurface() {
+    if (glfwCreateWindowSurface(g_instance, g_window, NULL, &g_surface) != VK_SUCCESS) {
+        printf("Application::Failed to create window surface.\n");
+        __debugbreak();
+    }
+}
 
 QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, bool *out_has_value) {
     QueueFamilyIndices indices = {0};
+
     u32 queue_family_count = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, NULL);
 
     hkArray_VkQueueFamilyProperties queue_families = hkarray_VkQueueFamilyProperties_create(queue_family_count);
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, queue_families.data);
 
+    bool graphics_family_has_value = false;
+    bool present_family_has_value = false;
     for (int i = 0; i < queue_families.length; ++i) {
         if (queue_families.data->queueFlags & VK_QUEUE_GRAPHICS_BIT) {
             indices.graphics_family = i;
+            graphics_family_has_value = true;
+        }
+        VkBool32 present_support = false;
+        vkGetPhysicalDeviceSurfaceSupportKHR(device, i, g_surface, &present_support);
+
+        if (present_support) {
+            indices.present_family = i;
+            present_family_has_value = true;
+        }
+        if (graphics_family_has_value && present_family_has_value) {
             *out_has_value = true;
             break;
         }
     }
     hkarray_VkQueueFamilyProperties_destroy(&queue_families);
-    printf("indices: %d\n", indices.graphics_family);
     return indices;
 }
 
@@ -219,7 +242,7 @@ bool isDeviceSuitable(VkPhysicalDevice device) {
 
     bool has_value = false;
     QueueFamilyIndices indices = findQueueFamilies(device, &has_value);
-    printf("graphics family = %d.\n", indices.graphics_family);
+    printf("indices.graphics_family:%d, indices.presernt_family:%d.\n", indices.graphics_family, indices.present_family);
 
     return has_value;
 }
@@ -248,19 +271,30 @@ void setupLogicalDevice() {
     bool has_value = false;
     QueueFamilyIndices indices = findQueueFamilies(g_physical_device, &has_value);
 
-    VkDeviceQueueCreateInfo queue_create_info = {0};
-    queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    queue_create_info.queueFamilyIndex = indices.graphics_family;
-    queue_create_info.queueCount = 1;
+    hkArray_VkDeviceQueueCreateInfo queue_create_infos = hkarray_VkDeviceQueueCreateInfo_create(0);
     float queue_priority = 1.0f;
-    queue_create_info.pQueuePriorities = &queue_priority;
+    for (i32 i = 0; i < 1; ++i) {
+        VkDeviceQueueCreateInfo queue_create_info = {0};
+        queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queue_create_info.queueFamilyIndex = indices.graphics_family;
+        queue_create_info.queueCount = 1;
+        queue_create_info.pQueuePriorities = &queue_priority;
+        hkarray_VkDeviceQueueCreateInfo_append(&queue_create_infos, &queue_create_info);
+    }
+
+    // VkDeviceQueueCreateInfo queue_create_info = {0};
+    // queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    // queue_create_info.queueFamilyIndex = indices.graphics_family;
+    // queue_create_info.queueCount = 1;
+    // float queue_priority = 1.0f;
+    // queue_create_info.pQueuePriorities = &queue_priority;
 
     VkPhysicalDeviceFeatures device_features = {0};
 
     VkDeviceCreateInfo create_info = {0};
     create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    create_info.pQueueCreateInfos = &queue_create_info;
-    create_info.queueCreateInfoCount = 1;
+    create_info.pQueueCreateInfos = queue_create_infos.data;
+    create_info.queueCreateInfoCount = queue_create_infos.length;
 
     create_info.pEnabledFeatures = &device_features;
 
@@ -276,6 +310,8 @@ void setupLogicalDevice() {
     assert(result == VK_SUCCESS);
 
     vkGetDeviceQueue(g_logical_device, indices.graphics_family, 0, &g_graphics_queue);
+    vkGetDeviceQueue(g_logical_device, indices.present_family, 0, &g_present_queue);
+    hkarray_VkDeviceQueueCreateInfo_destroy(&queue_create_infos);
 }
 
 // int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow) {
@@ -296,6 +332,7 @@ int main() {
 
     setupVulkanInstance();
     setupDebugMessenger();
+    setupSurface();
     setupPhysicalDevice();
     setupLogicalDevice();
 
@@ -307,6 +344,7 @@ int main() {
     if (enable_validation_layers) {
         DestroyDebugUtilsMessengerEXT(g_instance, g_debug_messenger, NULL);
     }
+    vkDestroySurfaceKHR(g_instance, g_surface, NULL);
     vkDestroyInstance(g_instance, NULL);
     glfwDestroyWindow(g_window);
     glfwTerminate();
