@@ -25,6 +25,7 @@
 
 #define assert(expr) if (!(expr)) { __debugbreak(); }
 
+GLFWwindow *g_window;
 VkInstance g_instance;
 VkPhysicalDevice g_physical_device = VK_NULL_HANDLE;
 VkDevice g_logical_device;
@@ -88,10 +89,11 @@ hkArray_str getRequiredExtensions() {
     glfw_extensions = glfwGetRequiredInstanceExtensions(&glfw_extension_count);
     assert(glfw_extensions != NULL);
 
-    hkArray_str extensions = hkarray_str_create(glfw_extension_count);
-    for (int i = 0; i < extensions.length; ++i) {
-        u32 len = strlen(glfw_extensions[i]) + 1;
-        memcpy(&extensions.data[i], &glfw_extensions[i], len);
+    hkArray_str extensions = hkarray_str_create(0);
+    for (int i = 0; i < glfw_extension_count; ++i) {
+        // u32 len = (u32)strlen(glfw_extensions[i]) + 1;
+        // memcpy(&extensions.data[i], &glfw_extensions[i], len);
+        extensions.data = hkarray_str_append_ptr(&extensions, glfw_extensions[i]);
     }
     if (enable_validation_layers) {
         extensions.data = hkarray_str_append_ptr(&extensions, VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
@@ -100,7 +102,7 @@ hkArray_str getRequiredExtensions() {
 }
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) {
-    printf("validation layer: %s\n", pCallbackData->pMessage);
+    printf("ValidationLayer::%s\n", pCallbackData->pMessage);
     return VK_FALSE;
 }
 
@@ -145,7 +147,7 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT
 //
 void setupVulkanInstance() {
     if (enable_validation_layers && !checkValidationLayerSupport()) {
-        // validation layers requested, but not available!
+        printf("ValidationLayers::Requested, but not available!\n");
         __debugbreak();
     }
     VkApplicationInfo appInfo = {0};
@@ -160,28 +162,20 @@ void setupVulkanInstance() {
     create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     create_info.pApplicationInfo = &appInfo;
 
-    uint32_t glfwExtensionCount = 0;
-    const char** glfwExtensions;
-    glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
-    create_info.enabledExtensionCount = glfwExtensionCount;
-    create_info.ppEnabledExtensionNames = glfwExtensions;
+    hkArray_str extensions = getRequiredExtensions();
+    create_info.enabledExtensionCount = (u32)extensions.length;
+    create_info.ppEnabledExtensionNames = extensions.data;
 
     VkDebugUtilsMessengerCreateInfoEXT debug_create_info = {0};
     if (enable_validation_layers) {
         create_info.enabledLayerCount = sizeofarray(validation_layers);
         create_info.ppEnabledLayerNames = validation_layers;
-
         populateDebugMessengerCreateInfo(&debug_create_info);
         create_info.pNext = (VkDebugUtilsMessengerCreateInfoEXT*) &debug_create_info;
     } else {
         create_info.enabledLayerCount = 0;
         create_info.pNext = NULL;
     }
-
-    hkArray_str extensions = getRequiredExtensions();
-    create_info.enabledExtensionCount = extensions.length;
-    create_info.ppEnabledExtensionNames = extensions.data;
 
     VkResult result = vkCreateInstance(&create_info, NULL, &g_instance);
     assert(result == VK_SUCCESS);
@@ -212,6 +206,7 @@ QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, bool *out_has_valu
         }
     }
     hkarray_VkQueueFamilyProperties_destroy(&queue_families);
+    printf("indices: %d\n", indices.graphics_family);
     return indices;
 }
 
@@ -285,7 +280,7 @@ void setupLogicalDevice() {
 
 // int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow) {
 int main() {
-    OutputDebugString(L"Vulkan.\n");
+    printf("Vulkan App Init.\n");
     if (!glfwInit()) {
         return -1;
     }
@@ -296,24 +291,25 @@ int main() {
     int width = 800;
     int height = 600;
 
-    GLFWwindow *window_handle = glfwCreateWindow(width, height, "Vulkan", NULL, NULL);
-    assert(window_handle != NULL);
+    g_window = glfwCreateWindow(width, height, "Vulkan", NULL, NULL);
+    assert(g_window != NULL);
 
     setupVulkanInstance();
     setupDebugMessenger();
     setupPhysicalDevice();
     setupLogicalDevice();
 
-    while (!glfwWindowShouldClose(window_handle)) {
+    while (!glfwWindowShouldClose(g_window)) {
         glfwPollEvents();
     }
 
+    vkDestroyDevice(g_logical_device, NULL);
     if (enable_validation_layers) {
         DestroyDebugUtilsMessengerEXT(g_instance, g_debug_messenger, NULL);
     }
-
     vkDestroyInstance(g_instance, NULL);
-    glfwDestroyWindow(window_handle);
+    glfwDestroyWindow(g_window);
     glfwTerminate();
+
     return 0;
 }
