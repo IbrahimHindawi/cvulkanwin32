@@ -96,10 +96,10 @@ hkArray_str getRequiredExtensions() {
     for (u32 i = 0; i < glfw_extension_count; ++i) {
         // u32 len = (u32)strlen(glfw_extensions[i]) + 1;
         // memcpy(&extensions.data[i], &glfw_extensions[i], len);
-        extensions.data = hkarray_str_append_ptr(&extensions, glfw_extensions[i]);
+        extensions.data = hkarray_str_append(&extensions, glfw_extensions[i]);
     }
     if (enable_validation_layers) {
-        extensions.data = hkarray_str_append_ptr(&extensions, VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+        extensions.data = hkarray_str_append(&extensions, VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }
     return extensions;
 }
@@ -279,7 +279,7 @@ void setupLogicalDevice() {
         queue_create_info.queueFamilyIndex = indices.graphics_family;
         queue_create_info.queueCount = 1;
         queue_create_info.pQueuePriorities = &queue_priority;
-        hkarray_VkDeviceQueueCreateInfo_append(&queue_create_infos, &queue_create_info);
+        queue_create_infos.data = hkarray_VkDeviceQueueCreateInfo_append(&queue_create_infos, queue_create_info);
     }
 
     // VkDeviceQueueCreateInfo queue_create_info = {0};
