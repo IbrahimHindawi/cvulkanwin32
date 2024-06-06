@@ -8,7 +8,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED True)
 
-add_executable(${PROJECT_NAME} WIN32
+add_executable(${PROJECT_NAME}
     source/main.c
     source/fileops.c
 )
