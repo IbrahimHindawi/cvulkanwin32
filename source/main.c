@@ -14,17 +14,7 @@
 #include <vulkan/vulkan_win32.h>
 #include <vulkan/vulkan_core.h>
 
-#include <meta/gen/hkArray_core.h>
-#include <meta/gen/hkArray_VkLayerProperties.h>
-#include <meta/gen/hkArray_VkExtensionProperties.h>
-#include <meta/gen/hkArray_VkPhysicalDevice.h>
-#include <meta/gen/hkArray_VkImage.h>
-#include <meta/gen/hkArray_VkImageView.h>
-#include <meta/gen/hkArray_VkQueueFamilyProperties.h>
-#include <meta/gen/hkArray_VkDeviceQueueCreateInfo.h>
-#include <meta/gen/hkArray_VkExtensionProperties.h>
-#include <meta/gen/hkArray_VkSurfaceFormatKHR.h>
-#include <meta/gen/hkArray_VkPresentModeKHR.h>
+#include <meta/gen/hkArray.h>
 
 #define assert(expr) if (!(expr)) { __debugbreak(); }
 
@@ -284,21 +274,33 @@ VkPresentModeKHR chooseSwapPresentMode(hkArray_VkPresentModeKHR available_presen
     // you will probably want to use VK_PRESENT_MODE_FIFO_KHR instead.
     return VK_PRESENT_MODE_FIFO_KHR;
 }
-
-// #define hkMath_clamp_gen(type) type clamp_#type((type) value, (type) min, (type) max) { if (value < min) { return min; } else if(value > max) { return max; } else { return value; } }
+#define concat(a, b) a ## b 
+#define hkMath_clamp_procgen(type) \
+    type concat(hkMath_clamp_, type)(type value, type min, type max) { if (value < min) { return min; } else if(value > max) { return max; } else { return value; } }
+hkMath_clamp_procgen(f32)
+hkMath_clamp_procgen(f64)
+hkMath_clamp_procgen(u8)
+hkMath_clamp_procgen(u16)
+hkMath_clamp_procgen(u32)
+hkMath_clamp_procgen(u64)
+hkMath_clamp_procgen(i8)
+hkMath_clamp_procgen(i16)
+hkMath_clamp_procgen(i32)
+hkMath_clamp_procgen(i64)
 // hkMath_clamp_gen(u32);
 
 u32 clamp_u32(u32 value, u32 min, u32 max) { if (value < min) { return min; } else if(value > max) { return max; } else { return value; } }
 
 VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR capabilities) {
+    hkMath_clamp_i32(1, 1, 1);
     if (capabilities.currentExtent.width != UINT32_MAX) {
         return capabilities.currentExtent;
     } else {
         i32 width, height;
         glfwGetFramebufferSize(g_window, &width, &height);
         VkExtent2D actual_extent = { (u32)width, (u32)height };
-        actual_extent.width = clamp_u32(actual_extent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
-        actual_extent.height = clamp_u32(actual_extent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+        actual_extent.width = hkMath_clamp_u32(actual_extent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+        actual_extent.height = hkMath_clamp_u32(actual_extent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
         return actual_extent;
     }
 }
