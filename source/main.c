@@ -851,7 +851,6 @@ int main() {
     setupFramebuffers();
     setupCommandPool();
     setupCommandBuffer();
-    // recordCommandBuffer();
     setupSyncObjects();
 
     while (!glfwWindowShouldClose(g_window)) {
