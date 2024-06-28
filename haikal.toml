@@ -1,0 +1,20 @@
+[core]
+metapath = "extern/haikal/src/meta/"
+[meta]
+hkArray = [
+    "VkLayerProperties",
+    "VkExtensionProperties",
+    "VkExtensionProperties",
+    "VkPhysicalDevice",
+    "VkImage",
+    "VkImageView",
+    "VkQueueFamilyProperties",
+    "VkDeviceQueueCreateInfo",
+    "VkExtensionProperties",
+    "VkSurfaceFormatKHR",
+    "VkPresentModeKHR",
+    "VkFramebuffer"
+]
+hkNode = []
+hkQueue = []
+hkList = []
