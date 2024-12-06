@@ -1,20 +1,8 @@
 [core]
 metapath = "extern/haikal/src/meta/"
+mainpath = "source/main.c"
 [meta]
-hkArray = [
-    "VkLayerProperties",
-    "VkExtensionProperties",
-    "VkExtensionProperties",
-    "VkPhysicalDevice",
-    "VkImage",
-    "VkImageView",
-    "VkQueueFamilyProperties",
-    "VkDeviceQueueCreateInfo",
-    "VkExtensionProperties",
-    "VkSurfaceFormatKHR",
-    "VkPresentModeKHR",
-    "VkFramebuffer"
-]
-hkNode = []
+hkArray = ["vec3"]
+hkNode = ["vec3"]
 hkQueue = []
-hkList = []
+hkList = ["vec3"]

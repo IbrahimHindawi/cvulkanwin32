@@ -17,6 +17,33 @@
 
 #include <meta/gen/hkArray.h>
 
+//---------------------------------------------------------------------------------------------------
+// haikal metaprogramming monomorphization codegen
+//---------------------------------------------------------------------------------------------------
+// haikal@i8:p
+// haikal@i16:p
+// haikal@i32:p
+// haikal@i64:p
+// haikal@u8:p
+// haikal@u16:p
+// haikal@u32:p
+// haikal@u64:p
+// haikal@f32:p
+// haikal@f64:p
+// haikal@str:p
+// haikal@VkLayerProperties:s
+// haikal@VkExtensionProperties:s
+// haikal@VkExtensionProperties:s
+// haikal@VkPhysicalDevice:s
+// haikal@VkImage:s
+// haikal@VkImageView:s
+// haikal@VkQueueFamilyProperties:s
+// haikal@VkDeviceQueueCreateInfo:s
+// haikal@VkExtensionProperties:s
+// haikal@VkSurfaceFormatKHR":s
+// haikal@VkPresentModeKHR:s
+// haikal@VkFramebuffe:s
+
 #define assert(expr) if (!(expr)) { __debugbreak(); }
 
 GLFWwindow *g_window;

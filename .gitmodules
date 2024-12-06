@@ -4,3 +4,6 @@
 [submodule "extern/haikal"]
 	path = extern/haikal
 	url = https://www.github.com/IbrahimHindawi/haikal
+[submodule "extern/glfw"]
+	path = extern/glfw
+	url = git@github.com:glfw/glfw.git
