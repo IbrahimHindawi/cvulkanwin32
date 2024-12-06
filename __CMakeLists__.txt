@@ -1,13 +1,15 @@
 cmake_minimum_required(VERSION 3.10)
 include(CMakePrintHelpers)
 
-project(cvulkanwin32 VERSION 1.0 LANGUAGES CXX)
+project(cvulkanwin32 VERSION 1.0 LANGUAGES C)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD_REQUIRED True)
 
 add_executable(${PROJECT_NAME}
-    source/main.cpp
-    source/fileops.cpp
+    source/main.c
+    source/fileops.c
 )
 
 find_package(Vulkan REQUIRED)
