@@ -57,3 +57,11 @@ build/
 vimsess
 scripts/psClang
 CMakeFiles/
+
+# CCLS
+.ccls-cache/
+.direnv/
+
+# Nix
+result
+compile_commands.json
