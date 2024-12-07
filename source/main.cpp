@@ -63,23 +63,24 @@ class Application {
         }
     private:
         GLFWwindow* window;
-        VkInstance* instance;
+        VkInstance instance;
         VkDebugUtilsMessengerEXT debugMessenger;
 
-        auto initVulkan() -> void {
+        void initVulkan() {
             u32 extensionCount = 0;
             vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
-            std::cout << extensionCount << " extensions supported\n";
+            std::cout <<  "extension count = " << extensionCount << std::endl;
             createInstance();
+            setupDebugMessenger();
         }
 
-        auto mainLoop() -> void {
+        void mainLoop() {
             while(!glfwWindowShouldClose(window)) {
                 glfwPollEvents();
             }
         }
 
-        auto initWindow() -> void {
+        void initWindow() {
             std::cout << "vk::start" << std::endl;
             glfwInit();
 
@@ -89,7 +90,7 @@ class Application {
             window = glfwCreateWindow(width, height, "vk", nullptr, nullptr);
         }
 
-        auto createInstance() -> void {
+        void createInstance() {
             if (enableValidationLayers && !checkValidationLayerSupport()) {
                 throw std::runtime_error("validation layers requested, but not available!");
             }
@@ -123,9 +124,9 @@ class Application {
                 createInfo.pNext = nullptr;
             }
 
-            // if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
-            //     throw std::runtime_error("failed to create instance!");
-            // }
+            if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
+                throw std::runtime_error("failed to create instance!");
+            }
         }
 
         void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo) {
@@ -142,9 +143,9 @@ class Application {
             VkDebugUtilsMessengerCreateInfoEXT createInfo;
             populateDebugMessengerCreateInfo(createInfo);
 
-            // if (CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS) {
-            //     throw std::runtime_error("failed to set up debug messenger!");
-            // }
+            if (CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS) {
+                throw std::runtime_error("failed to set up debug messenger!");
+            }
         }
 
         std::vector<const char*> getRequiredExtensions() {
@@ -192,12 +193,12 @@ class Application {
             return VK_FALSE;
         }
 
-        auto cleanup() -> void {
+        void cleanup() {
             if (enableValidationLayers) {
-                // DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
+                DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
             }
 
-            // vkDestroyInstance(instance, nullptr);
+            vkDestroyInstance(instance, nullptr);
 
             glfwDestroyWindow(window);
 
