@@ -15,34 +15,35 @@
 #include <vulkan/vulkan_win32.h>
 #include <vulkan/vulkan_core.h>
 
-#include <meta/gen/hkArray.h>
-
 //---------------------------------------------------------------------------------------------------
 // haikal metaprogramming monomorphization codegen
 //---------------------------------------------------------------------------------------------------
-// haikal@i8:p
-// haikal@i16:p
-// haikal@i32:p
-// haikal@i64:p
-// haikal@u8:p
-// haikal@u16:p
-// haikal@u32:p
-// haikal@u64:p
-// haikal@f32:p
-// haikal@f64:p
-// haikal@str:p
-// haikal@VkLayerProperties:s
-// haikal@VkExtensionProperties:s
-// haikal@VkExtensionProperties:s
-// haikal@VkPhysicalDevice:s
-// haikal@VkImage:s
-// haikal@VkImageView:s
-// haikal@VkQueueFamilyProperties:s
-// haikal@VkDeviceQueueCreateInfo:s
-// haikal@VkExtensionProperties:s
-// haikal@VkSurfaceFormatKHR":s
-// haikal@VkPresentModeKHR:s
-// haikal@VkFramebuffe:s
+// haikal@hkArray:i8:p
+// haikal@hkArray:i16:p
+// haikal@hkArray:i32:p
+// haikal@hkArray:i64:p
+// haikal@hkArray:u8:p
+// haikal@hkArray:u16:p
+// haikal@hkArray:u32:p
+// haikal@hkArray:u64:p
+// haikal@hkArray:f32:p
+// haikal@hkArray:f64:p
+// haikal@hkArray:str:p
+// haikal@hkArray:VkPhysicalDevice:p
+// haikal@hkArray:VkImage:p
+// haikal@hkArray:VkImageView:p
+// haikal@hkArray:VkFramebuffer:p
+// haikal@hkArray:VkPresentModeKHR:e
+// haikal@hkArray:VkLayerProperties:s
+// haikal@hkArray:VkExtensionProperties:s
+// haikal@hkArray:VkQueueFamilyProperties:s
+// haikal@hkArray:VkDeviceQueueCreateInfo:s
+// haikal@hkArray:VkSurfaceFormatKHR:s
+
+#include <hkArray.h>
+
+#include <hkArray.c>
+
 
 #define assert(expr) if (!(expr)) { __debugbreak(); }
 
@@ -101,7 +102,7 @@ bool checkValidationLayerSupport() {
     uint32_t layer_count;
     vkEnumerateInstanceLayerProperties(&layer_count, NULL);
 
-    hkArray_VkLayerProperties available_layers = hkarray_VkLayerProperties_create(layer_count);
+    hkArray_VkLayerProperties available_layers = hkArray_VkLayerProperties_create(layer_count);
     VkResult result = vkEnumerateInstanceLayerProperties(&layer_count, available_layers.data);
     assert(result == VK_SUCCESS);
 
@@ -116,7 +117,7 @@ bool checkValidationLayerSupport() {
             layer_found = false;
         }
     }
-    hkarray_VkLayerProperties_destroy(&available_layers);
+    hkArray_VkLayerProperties_destroy(&available_layers);
     return layer_found;
 }
 
@@ -126,14 +127,14 @@ hkArray_str getRequiredExtensions() {
     glfw_extensions = glfwGetRequiredInstanceExtensions(&glfw_extension_count);
     assert(glfw_extensions != NULL);
 
-    hkArray_str extensions = hkarray_str_create(0);
+    hkArray_str extensions = hkArray_str_create(0);
     for (u32 i = 0; i < glfw_extension_count; ++i) {
         // u32 len = (u32)strlen(glfw_extensions[i]) + 1;
         // memcpy(&extensions.data[i], &glfw_extensions[i], len);
-        extensions.data = hkarray_str_append(&extensions, glfw_extensions[i]);
+        extensions.data = hkArray_str_append(&extensions, glfw_extensions[i]);
     }
     if (enable_validation_layers) {
-        extensions.data = hkarray_str_append(&extensions, VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+        extensions.data = hkArray_str_append(&extensions, VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }
     return extensions;
 }
@@ -217,7 +218,7 @@ void setupVulkanInstance() {
     VkResult result = vkCreateInstance(&create_info, NULL, &g_instance);
     assert(result == VK_SUCCESS);
 
-    hkarray_str_destroy(&extensions);
+    hkArray_str_destroy(&extensions);
 }
 
 // SWAPCHAIN
@@ -240,7 +241,7 @@ QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, bool *out_has_valu
     u32 queue_family_count = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, NULL);
 
-    hkArray_VkQueueFamilyProperties queue_families = hkarray_VkQueueFamilyProperties_create(queue_family_count);
+    hkArray_VkQueueFamilyProperties queue_families = hkArray_VkQueueFamilyProperties_create(queue_family_count);
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, queue_families.data);
 
     bool graphics_family_has_value = false;
@@ -262,7 +263,7 @@ QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, bool *out_has_valu
             break;
         }
     }
-    hkarray_VkQueueFamilyProperties_destroy(&queue_families);
+    hkArray_VkQueueFamilyProperties_destroy(&queue_families);
     return indices;
 }
 
@@ -273,14 +274,14 @@ SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device) {
     u32 format_count;
     vkGetPhysicalDeviceSurfaceFormatsKHR(device, g_surface, &format_count, NULL);
     if (format_count != 0) {
-        details.formats = hkarray_VkSurfaceFormatKHR_create(format_count);
+        details.formats = hkArray_VkSurfaceFormatKHR_create(format_count);
         vkGetPhysicalDeviceSurfaceFormatsKHR(device, g_surface, &format_count, details.formats.data);
     }
 
     u32 present_mode_count;
     vkGetPhysicalDeviceSurfacePresentModesKHR(device, g_surface, &present_mode_count, NULL);
     if (present_mode_count != 0) {
-        details.present_modes = hkarray_VkPresentModeKHR_create(present_mode_count);
+        details.present_modes = hkArray_VkPresentModeKHR_create(present_mode_count);
         vkGetPhysicalDeviceSurfacePresentModesKHR(device, g_surface, &present_mode_count, details.present_modes.data);
     }
 
@@ -385,10 +386,10 @@ void setupSwapChain() {
     result = vkCreateSwapchainKHR(g_logical_device, &create_info, NULL, &g_swapchain);
     assert(result == VK_SUCCESS);
 
-    g_swapchain_images = hkarray_VkImage_create(image_count);
+    g_swapchain_images = hkArray_VkImage_create(image_count);
     result = vkGetSwapchainImagesKHR(g_logical_device, g_swapchain, &image_count, NULL);
     assert(result == VK_SUCCESS);
-    hkarray_VkImage_resize(&g_swapchain_images, image_count);
+    hkArray_VkImage_resize(&g_swapchain_images, image_count);
     vkGetSwapchainImagesKHR(g_logical_device, g_swapchain, &image_count, g_swapchain_images.data);
     g_swapchain_image_format = surface_format.format;
     g_swapchain_extent = extent;
@@ -396,7 +397,7 @@ void setupSwapChain() {
 
 void setupImageViews() {
     VkResult result = false;
-    g_swapchain_image_views = hkarray_VkImageView_create(g_swapchain_images.length);
+    g_swapchain_image_views = hkArray_VkImageView_create(g_swapchain_images.length);
     for (u32 swapchain_images_count = 0; swapchain_images_count < g_swapchain_images.length; ++swapchain_images_count) {
         VkImageViewCreateInfo create_info = {0};
         create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -434,7 +435,7 @@ bool checkDeviceExtensionSupport(VkPhysicalDevice device) {
     u32 extension_count;
     vkEnumerateDeviceExtensionProperties(device, NULL, &extension_count, NULL);
 
-    hkArray_VkExtensionProperties available_extensions = hkarray_VkExtensionProperties_create(extension_count);
+    hkArray_VkExtensionProperties available_extensions = hkArray_VkExtensionProperties_create(extension_count);
     vkEnumerateDeviceExtensionProperties(device, NULL, &extension_count, available_extensions.data);
 
     for (i32 device_extensions_count = 0; device_extensions_count < sizeofarray(device_extensions); ++device_extensions_count) {
@@ -448,7 +449,7 @@ bool checkDeviceExtensionSupport(VkPhysicalDevice device) {
             layer_found = false;
         }
     }
-    hkarray_VkExtensionProperties_destroy(&available_extensions);
+    hkArray_VkExtensionProperties_destroy(&available_extensions);
     return layer_found;
 }
 
@@ -468,8 +469,8 @@ bool isDeviceSuitable(VkPhysicalDevice device) {
     if (extensions_supported) {
         SwapChainSupportDetails swapchain_support = querySwapChainSupport(device);
         swapchain_adequate = swapchain_support.present_modes.length > 0 && swapchain_support.formats.length > 0;
-        hkarray_VkSurfaceFormatKHR_destroy(&swapchain_support.formats);
-        hkarray_VkPresentModeKHR_destroy(&swapchain_support.present_modes);
+        hkArray_VkSurfaceFormatKHR_destroy(&swapchain_support.formats);
+        hkArray_VkPresentModeKHR_destroy(&swapchain_support.present_modes);
     }
 
     return queue_families_has_value && extensions_supported && swapchain_adequate;
@@ -480,7 +481,7 @@ void setupPhysicalDevice() {
     vkEnumeratePhysicalDevices(g_instance, &device_count, NULL);
     assert(device_count != 0);
 
-    hkArray_VkPhysicalDevice physical_devices = hkarray_VkPhysicalDevice_create(device_count);
+    hkArray_VkPhysicalDevice physical_devices = hkArray_VkPhysicalDevice_create(device_count);
     VkResult result = vkEnumeratePhysicalDevices(g_instance, &device_count, physical_devices.data);
     assert(result == VK_SUCCESS);
 
@@ -499,7 +500,7 @@ void setupLogicalDevice() {
     bool has_value = false;
     QueueFamilyIndices indices = findQueueFamilies(g_physical_device, &has_value);
 
-    hkArray_VkDeviceQueueCreateInfo queue_create_infos = hkarray_VkDeviceQueueCreateInfo_create(0);
+    hkArray_VkDeviceQueueCreateInfo queue_create_infos = hkArray_VkDeviceQueueCreateInfo_create(0);
     float queue_priority = 1.0f;
     for (i32 i = 0; i < 1; ++i) {
         VkDeviceQueueCreateInfo queue_create_info = {0};
@@ -507,7 +508,7 @@ void setupLogicalDevice() {
         queue_create_info.queueFamilyIndex = indices.graphics_family;
         queue_create_info.queueCount = 1;
         queue_create_info.pQueuePriorities = &queue_priority;
-        queue_create_infos.data = hkarray_VkDeviceQueueCreateInfo_append(&queue_create_infos, queue_create_info);
+        queue_create_infos.data = hkArray_VkDeviceQueueCreateInfo_append(&queue_create_infos, queue_create_info);
     }
 
     // VkDeviceQueueCreateInfo queue_create_info = {0};
@@ -540,7 +541,7 @@ void setupLogicalDevice() {
 
     vkGetDeviceQueue(g_logical_device, indices.graphics_family, 0, &g_graphics_queue);
     vkGetDeviceQueue(g_logical_device, indices.present_family, 0, &g_present_queue);
-    hkarray_VkDeviceQueueCreateInfo_destroy(&queue_create_infos);
+    hkArray_VkDeviceQueueCreateInfo_destroy(&queue_create_infos);
 }
 
 //
@@ -703,7 +704,7 @@ void setupRenderPass() {
 }
 
 void setupFramebuffers() {
-    g_swapchain_framebuffers = hkarray_VkFramebuffer_create(g_swapchain_image_views.length);
+    g_swapchain_framebuffers = hkArray_VkFramebuffer_create(g_swapchain_image_views.length);
     for (usize swapchain_image_views_count = 0; swapchain_image_views_count < g_swapchain_image_views.length; swapchain_image_views_count++) {
         VkResult result = false;
         VkImageView attachments[] = { g_swapchain_image_views.data[swapchain_image_views_count] };
