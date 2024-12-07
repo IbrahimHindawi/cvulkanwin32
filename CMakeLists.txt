@@ -43,7 +43,7 @@ endif()
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
 endif()
 
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets ${CMAKE_CURRENT_BINARY_DIR}/assets)
+# add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets ${CMAKE_CURRENT_BINARY_DIR}/assets)
 
 #---------------------------------------------------------------------------------------------------
 # CXX
@@ -77,4 +77,4 @@ endif()
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
 endif()
 
-add_custom_command(TARGET cvulkan++ POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets ${CMAKE_CURRENT_BINARY_DIR}/assets)
+add_custom_command(TARGET cvulkan++ POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/source/shaders ${CMAKE_CURRENT_BINARY_DIR}/source/shaders)

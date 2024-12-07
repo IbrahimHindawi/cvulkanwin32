@@ -82,7 +82,7 @@ const std::vector<Vertex> vertices = {
     {{0.5f, 0.5f, 0.f}, {0.0f, 0.0f, 1.0f}},
     {{-0.5f, 0.5f, 0.f}, {1.0f, 1.0f, 1.0f}}};
 
-const std::vector<u64> indices = {0, 1, 2, 2, 3, 0};
+const std::vector<u16> indices = {0, 1, 2, 2, 3, 0};
 
 const std::vector<const char *> validationLayers = {
     "VK_LAYER_KHRONOS_validation",
@@ -781,8 +781,8 @@ private:
   }
 
   void createGraphicsPipeline() {
-    auto vertShaderCode = readFile("assets/shaders/shader.vert.spv");
-    auto fragShaderCode = readFile("assets/shaders/shader.frag.spv");
+    auto vertShaderCode = readFile("source/shaders/shader.vert.spv");
+    auto fragShaderCode = readFile("source/shaders/shader.frag.spv");
 
     VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
     VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
@@ -1348,16 +1348,34 @@ private:
     return VK_FALSE;
   }
 
-  static std::vector<char> readFile(const std::string &filename) {
-    std::ifstream file(filename, std::ios::ate | std::ios::binary);
+  // static std::vector<char> readFile(const std::string &filename) {
+  //   std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
-    if (!file.is_open()) {
-      throw std::runtime_error("failed to open file!");
+  //   if (!file.is_open()) {
+  //     throw std::runtime_error("failed to open file!");
+  //   }
+
+  //   return std::vector<char>(std::istreambuf_iterator<char>(file),
+  //                            std::istreambuf_iterator<char>());
+  // }
+
+    static std::vector<char> readFile(const std::string& filename) {
+        std::ifstream file(filename, std::ios::ate | std::ios::binary);
+
+        if (!file.is_open()) {
+            throw std::runtime_error("failed to open file!");
+        }
+
+        size_t fileSize = (size_t) file.tellg();
+        std::vector<char> buffer(fileSize);
+
+        file.seekg(0);
+        file.read(buffer.data(), fileSize);
+
+        file.close();
+
+        return buffer;
     }
-
-    return std::vector<char>(std::istreambuf_iterator<char>(file),
-                             std::istreambuf_iterator<char>());
-  }
 
   void cleanup() {
     cleanupSwapChain();
