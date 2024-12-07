@@ -49,8 +49,8 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E
 # CXX
 #---------------------------------------------------------------------------------------------------
 add_executable(cvulkan++
-    source/main.cpp
-    source/fileops.cpp
+    source/main.cc
+    source/fileops.cc
 )
 find_package(Vulkan REQUIRED)
 
