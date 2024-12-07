@@ -73,9 +73,10 @@
               "-fvisibility=hidden"
               "-Wall"
               "-Wextra"
-              #"-Werror"
+              "-Werror"
               "-Wpedantic"
               "-Wconversion"
+              "-Wno-missing-field-initializers"
             ];
 
             preBuild = ''
