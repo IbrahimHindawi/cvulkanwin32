@@ -18,31 +18,30 @@
 //---------------------------------------------------------------------------------------------------
 // haikal metaprogramming monomorphization codegen
 //---------------------------------------------------------------------------------------------------
-// haikal@hkArray:i8:p
-// haikal@hkArray:i16:p
-// haikal@hkArray:i32:p
-// haikal@hkArray:i64:p
-// haikal@hkArray:u8:p
-// haikal@hkArray:u16:p
-// haikal@hkArray:u32:p
-// haikal@hkArray:u64:p
-// haikal@hkArray:f32:p
-// haikal@hkArray:f64:p
-// haikal@hkArray:str:p
-// haikal@hkArray:VkPhysicalDevice:p
-// haikal@hkArray:VkImage:p
-// haikal@hkArray:VkImageView:p
-// haikal@hkArray:VkFramebuffer:p
-// haikal@hkArray:VkPresentModeKHR:e
-// haikal@hkArray:VkLayerProperties:s
-// haikal@hkArray:VkExtensionProperties:s
-// haikal@hkArray:VkQueueFamilyProperties:s
-// haikal@hkArray:VkDeviceQueueCreateInfo:s
-// haikal@hkArray:VkSurfaceFormatKHR:s
+// haikal@Array:i8:p
+// haikal@Array:i16:p
+// haikal@Array:i32:p
+// haikal@Array:i64:p
+// haikal@Array:u8:p
+// haikal@Array:u16:p
+// haikal@Array:u32:p
+// haikal@Array:u64:p
+// haikal@Array:f32:p
+// haikal@Array:f64:p
+// haikal@Array:str:p
+// haikal@Array:VkPhysicalDevice:p
+// haikal@Array:VkImage:p
+// haikal@Array:VkImageView:p
+// haikal@Array:VkFramebuffer:p
+// haikal@Array:VkPresentModeKHR:e
+// haikal@Array:VkLayerProperties:s
+// haikal@Array:VkExtensionProperties:s
+// haikal@Array:VkQueueFamilyProperties:s
+// haikal@Array:VkDeviceQueueCreateInfo:s
+// haikal@Array:VkSurfaceFormatKHR:s
 
-#include <hkArray.h>
+#include <Array.h>
 
-#include <hkArray.c>
 
 
 #define assert(expr) if (!(expr)) { __debugbreak(); }
@@ -56,16 +55,16 @@ VkDebugUtilsMessengerEXT g_debug_messenger;
 VkSurfaceKHR g_surface;
 VkQueue g_present_queue;
 VkSwapchainKHR g_swapchain;
-hkArray_VkImage g_swapchain_images;
+Array_VkImage g_swapchain_images;
 VkFormat g_swapchain_image_format;
 VkExtent2D g_swapchain_extent;
-hkArray_VkImageView g_swapchain_image_views;
+Array_VkImageView g_swapchain_image_views;
 VkRenderPass g_render_pass;
 VkPipelineLayout g_pipeline_layout;
 VkPipeline g_graphics_pipeline;
 str validation_layers[] = { "VK_LAYER_KHRONOS_validation" };
 str device_extensions[] = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
-hkArray_VkFramebuffer g_swapchain_framebuffers;
+Array_VkFramebuffer g_swapchain_framebuffers;
 VkCommandPool g_command_pool;
 VkCommandBuffer g_command_buffer;
 VkSemaphore g_image_available_semaphore;
@@ -102,7 +101,7 @@ bool checkValidationLayerSupport() {
     uint32_t layer_count;
     vkEnumerateInstanceLayerProperties(&layer_count, NULL);
 
-    hkArray_VkLayerProperties available_layers = hkArray_VkLayerProperties_create(layer_count);
+    Array_VkLayerProperties available_layers = Array_VkLayerProperties_reserve(layer_count);
     VkResult result = vkEnumerateInstanceLayerProperties(&layer_count, available_layers.data);
     assert(result == VK_SUCCESS);
 
@@ -117,24 +116,24 @@ bool checkValidationLayerSupport() {
             layer_found = false;
         }
     }
-    hkArray_VkLayerProperties_destroy(&available_layers);
+    Array_VkLayerProperties_destroy(&available_layers);
     return layer_found;
 }
 
-hkArray_str getRequiredExtensions() {
+Array_str getRequiredExtensions() {
     u32 glfw_extension_count = 0;
-    strptr glfw_extensions = NULL;
+    const char **glfw_extensions = NULL;
     glfw_extensions = glfwGetRequiredInstanceExtensions(&glfw_extension_count);
     assert(glfw_extensions != NULL);
 
-    hkArray_str extensions = hkArray_str_create(0);
+    Array_str extensions = Array_str_reserve(0);
     for (u32 i = 0; i < glfw_extension_count; ++i) {
         // u32 len = (u32)strlen(glfw_extensions[i]) + 1;
         // memcpy(&extensions.data[i], &glfw_extensions[i], len);
-        extensions.data = hkArray_str_append(&extensions, glfw_extensions[i]);
+        Array_str_append(&extensions, glfw_extensions[i]);
     }
     if (enable_validation_layers) {
-        extensions.data = hkArray_str_append(&extensions, VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+        Array_str_append(&extensions, VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }
     return extensions;
 }
@@ -200,9 +199,14 @@ void setupVulkanInstance() {
     create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     create_info.pApplicationInfo = &appInfo;
 
-    hkArray_str extensions = getRequiredExtensions();
+    Array_str extensions = getRequiredExtensions();
     create_info.enabledExtensionCount = (u32)extensions.length;
     create_info.ppEnabledExtensionNames = extensions.data;
+    // u32 glfw_extension_count = 0;
+    // const char **glfw_extensions;
+    // glfw_extensions = glfwGetRequiredInstanceExtensions(&glfw_extension_count);
+    // create_info.enabledExtensionCount = glfw_extension_count;
+    // create_info.ppEnabledExtensionNames = glfw_extensions;
 
     VkDebugUtilsMessengerCreateInfoEXT debug_create_info = {0};
     if (enable_validation_layers) {
@@ -218,7 +222,7 @@ void setupVulkanInstance() {
     VkResult result = vkCreateInstance(&create_info, NULL, &g_instance);
     assert(result == VK_SUCCESS);
 
-    hkArray_str_destroy(&extensions);
+    Array_str_destroy(&extensions);
 }
 
 // SWAPCHAIN
@@ -226,8 +230,8 @@ void setupVulkanInstance() {
 //
 structdef(SwapChainSupportDetails) {
     VkSurfaceCapabilitiesKHR capabilities;
-    hkArray_VkSurfaceFormatKHR formats;
-    hkArray_VkPresentModeKHR present_modes;
+    Array_VkSurfaceFormatKHR formats;
+    Array_VkPresentModeKHR present_modes;
 };
 
 structdef(QueueFamilyIndices) {
@@ -241,7 +245,7 @@ QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, bool *out_has_valu
     u32 queue_family_count = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, NULL);
 
-    hkArray_VkQueueFamilyProperties queue_families = hkArray_VkQueueFamilyProperties_create(queue_family_count);
+    Array_VkQueueFamilyProperties queue_families = Array_VkQueueFamilyProperties_reserve(queue_family_count);
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, queue_families.data);
 
     bool graphics_family_has_value = false;
@@ -263,7 +267,7 @@ QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, bool *out_has_valu
             break;
         }
     }
-    hkArray_VkQueueFamilyProperties_destroy(&queue_families);
+    Array_VkQueueFamilyProperties_destroy(&queue_families);
     return indices;
 }
 
@@ -274,21 +278,21 @@ SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device) {
     u32 format_count;
     vkGetPhysicalDeviceSurfaceFormatsKHR(device, g_surface, &format_count, NULL);
     if (format_count != 0) {
-        details.formats = hkArray_VkSurfaceFormatKHR_create(format_count);
+        details.formats = Array_VkSurfaceFormatKHR_reserve(format_count);
         vkGetPhysicalDeviceSurfaceFormatsKHR(device, g_surface, &format_count, details.formats.data);
     }
 
     u32 present_mode_count;
     vkGetPhysicalDeviceSurfacePresentModesKHR(device, g_surface, &present_mode_count, NULL);
     if (present_mode_count != 0) {
-        details.present_modes = hkArray_VkPresentModeKHR_create(present_mode_count);
+        details.present_modes = Array_VkPresentModeKHR_reserve(present_mode_count);
         vkGetPhysicalDeviceSurfacePresentModesKHR(device, g_surface, &present_mode_count, details.present_modes.data);
     }
 
     return details;
 }
 
-VkSurfaceFormatKHR chooseSwapSurfaceFormat(hkArray_VkSurfaceFormatKHR avaiable_formats) {
+VkSurfaceFormatKHR chooseSwapSurfaceFormat(Array_VkSurfaceFormatKHR avaiable_formats) {
     for (u32 avaiable_formats_count = 0; avaiable_formats_count < avaiable_formats.length; ++avaiable_formats_count) {
         if (avaiable_formats.data[avaiable_formats_count].format == VK_FORMAT_B8G8R8A8_SRGB && avaiable_formats.data[avaiable_formats_count].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
             return avaiable_formats.data[avaiable_formats_count];
@@ -299,7 +303,7 @@ VkSurfaceFormatKHR chooseSwapSurfaceFormat(hkArray_VkSurfaceFormatKHR avaiable_f
     return avaiable_formats.data[0];
 }
 
-VkPresentModeKHR chooseSwapPresentMode(hkArray_VkPresentModeKHR available_present_modes) {
+VkPresentModeKHR chooseSwapPresentMode(Array_VkPresentModeKHR available_present_modes) {
     for (u32 available_present_modes_count = 0; available_present_modes_count < available_present_modes.length; ++available_present_modes_count) {
         if (available_present_modes.data[available_present_modes_count] == VK_PRESENT_MODE_MAILBOX_KHR) {
             return available_present_modes.data[available_present_modes_count];
@@ -386,10 +390,11 @@ void setupSwapChain() {
     result = vkCreateSwapchainKHR(g_logical_device, &create_info, NULL, &g_swapchain);
     assert(result == VK_SUCCESS);
 
-    g_swapchain_images = hkArray_VkImage_create(image_count);
+    g_swapchain_images = Array_VkImage_reserve(image_count);
     result = vkGetSwapchainImagesKHR(g_logical_device, g_swapchain, &image_count, NULL);
     assert(result == VK_SUCCESS);
-    hkArray_VkImage_resize(&g_swapchain_images, image_count);
+    // Array_VkImage_resize(&g_swapchain_images, image_count);
+    Array_VkImage_resize(&g_swapchain_images);
     vkGetSwapchainImagesKHR(g_logical_device, g_swapchain, &image_count, g_swapchain_images.data);
     g_swapchain_image_format = surface_format.format;
     g_swapchain_extent = extent;
@@ -397,7 +402,7 @@ void setupSwapChain() {
 
 void setupImageViews() {
     VkResult result = false;
-    g_swapchain_image_views = hkArray_VkImageView_create(g_swapchain_images.length);
+    g_swapchain_image_views = Array_VkImageView_reserve(g_swapchain_images.length);
     for (u32 swapchain_images_count = 0; swapchain_images_count < g_swapchain_images.length; ++swapchain_images_count) {
         VkImageViewCreateInfo create_info = {0};
         create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -435,7 +440,7 @@ bool checkDeviceExtensionSupport(VkPhysicalDevice device) {
     u32 extension_count;
     vkEnumerateDeviceExtensionProperties(device, NULL, &extension_count, NULL);
 
-    hkArray_VkExtensionProperties available_extensions = hkArray_VkExtensionProperties_create(extension_count);
+    Array_VkExtensionProperties available_extensions = Array_VkExtensionProperties_reserve(extension_count);
     vkEnumerateDeviceExtensionProperties(device, NULL, &extension_count, available_extensions.data);
 
     for (i32 device_extensions_count = 0; device_extensions_count < sizeofarray(device_extensions); ++device_extensions_count) {
@@ -449,7 +454,7 @@ bool checkDeviceExtensionSupport(VkPhysicalDevice device) {
             layer_found = false;
         }
     }
-    hkArray_VkExtensionProperties_destroy(&available_extensions);
+    Array_VkExtensionProperties_destroy(&available_extensions);
     return layer_found;
 }
 
@@ -469,8 +474,8 @@ bool isDeviceSuitable(VkPhysicalDevice device) {
     if (extensions_supported) {
         SwapChainSupportDetails swapchain_support = querySwapChainSupport(device);
         swapchain_adequate = swapchain_support.present_modes.length > 0 && swapchain_support.formats.length > 0;
-        hkArray_VkSurfaceFormatKHR_destroy(&swapchain_support.formats);
-        hkArray_VkPresentModeKHR_destroy(&swapchain_support.present_modes);
+        Array_VkSurfaceFormatKHR_destroy(&swapchain_support.formats);
+        Array_VkPresentModeKHR_destroy(&swapchain_support.present_modes);
     }
 
     return queue_families_has_value && extensions_supported && swapchain_adequate;
@@ -481,7 +486,7 @@ void setupPhysicalDevice() {
     vkEnumeratePhysicalDevices(g_instance, &device_count, NULL);
     assert(device_count != 0);
 
-    hkArray_VkPhysicalDevice physical_devices = hkArray_VkPhysicalDevice_create(device_count);
+    Array_VkPhysicalDevice physical_devices = Array_VkPhysicalDevice_reserve(device_count);
     VkResult result = vkEnumeratePhysicalDevices(g_instance, &device_count, physical_devices.data);
     assert(result == VK_SUCCESS);
 
@@ -500,7 +505,7 @@ void setupLogicalDevice() {
     bool has_value = false;
     QueueFamilyIndices indices = findQueueFamilies(g_physical_device, &has_value);
 
-    hkArray_VkDeviceQueueCreateInfo queue_create_infos = hkArray_VkDeviceQueueCreateInfo_create(0);
+    Array_VkDeviceQueueCreateInfo queue_create_infos = Array_VkDeviceQueueCreateInfo_reserve(0);
     float queue_priority = 1.0f;
     for (i32 i = 0; i < 1; ++i) {
         VkDeviceQueueCreateInfo queue_create_info = {0};
@@ -508,7 +513,7 @@ void setupLogicalDevice() {
         queue_create_info.queueFamilyIndex = indices.graphics_family;
         queue_create_info.queueCount = 1;
         queue_create_info.pQueuePriorities = &queue_priority;
-        queue_create_infos.data = hkArray_VkDeviceQueueCreateInfo_append(&queue_create_infos, queue_create_info);
+        queue_create_infos.data = Array_VkDeviceQueueCreateInfo_append(&queue_create_infos, queue_create_info);
     }
 
     // VkDeviceQueueCreateInfo queue_create_info = {0};
@@ -541,7 +546,7 @@ void setupLogicalDevice() {
 
     vkGetDeviceQueue(g_logical_device, indices.graphics_family, 0, &g_graphics_queue);
     vkGetDeviceQueue(g_logical_device, indices.present_family, 0, &g_present_queue);
-    hkArray_VkDeviceQueueCreateInfo_destroy(&queue_create_infos);
+    Array_VkDeviceQueueCreateInfo_destroy(&queue_create_infos);
 }
 
 //
@@ -704,7 +709,7 @@ void setupRenderPass() {
 }
 
 void setupFramebuffers() {
-    g_swapchain_framebuffers = hkArray_VkFramebuffer_create(g_swapchain_image_views.length);
+    g_swapchain_framebuffers = Array_VkFramebuffer_reserve(g_swapchain_image_views.length);
     for (usize swapchain_image_views_count = 0; swapchain_image_views_count < g_swapchain_image_views.length; swapchain_image_views_count++) {
         VkResult result = false;
         VkImageView attachments[] = { g_swapchain_image_views.data[swapchain_image_views_count] };
@@ -911,3 +916,5 @@ int main() {
 
     return 0;
 }
+
+#include <Array.c>
