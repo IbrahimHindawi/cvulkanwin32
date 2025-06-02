@@ -66,3 +66,4 @@ CMakeFiles/
 # Nix
 result
 compile_commands.json
+.vs/

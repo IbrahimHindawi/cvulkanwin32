@@ -400,8 +400,8 @@ void setupSwapChain() {
     vkGetSwapchainImagesKHR(g_logical_device, g_swapchain, &image_count, g_swapchain_images.data);
     g_swapchain_image_format = surface_format.format;
     g_swapchain_extent = extent;
-    hkArray_VkSurfaceFormatKHR_destroy(&swapchain_support.formats);
-    hkArray_VkPresentModeKHR_destroy(&swapchain_support.present_modes);
+    Array_VkSurfaceFormatKHR_destroy(&swapchain_support.formats);
+    Array_VkPresentModeKHR_destroy(&swapchain_support.present_modes);
 }
 
 void setupImageViews() {
