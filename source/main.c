@@ -14,6 +14,7 @@
 #define VK_USE_PLATFORM_WIN32_KHR 1
 #include <vulkan/vulkan_win32.h>
 #include <vulkan/vulkan_core.h>
+#include <stddef.h>
 
 //---------------------------------------------------------------------------------------------------
 // haikal metaprogramming monomorphization codegen
@@ -45,7 +46,7 @@
 #include <hkArray.c>
 
 
-#define assert(expr) if (!(expr)) { __debugbreak(); }
+// #define assert(expr) if (!(expr)) { __debugbreak(); }
 
 GLFWwindow *g_window;
 VkInstance g_instance;
@@ -140,6 +141,7 @@ hkArray_str getRequiredExtensions() {
 }
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) {
+    int s = offsetof(VkDebugUtilsMessengerCallbackDataEXT, pMessage);
     printf("ValidationLayer::%s\n", pCallbackData->pMessage);
     return VK_FALSE;
 }
@@ -247,7 +249,7 @@ QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, bool *out_has_valu
     bool graphics_family_has_value = false;
     bool present_family_has_value = false;
     for (int i = 0; i < queue_families.length; ++i) {
-        if (queue_families.data->queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+        if (queue_families.data[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
             indices.graphics_family = i;
             graphics_family_has_value = true;
         }
@@ -393,6 +395,8 @@ void setupSwapChain() {
     vkGetSwapchainImagesKHR(g_logical_device, g_swapchain, &image_count, g_swapchain_images.data);
     g_swapchain_image_format = surface_format.format;
     g_swapchain_extent = extent;
+    hkArray_VkSurfaceFormatKHR_destroy(&swapchain_support.formats);
+    hkArray_VkPresentModeKHR_destroy(&swapchain_support.present_modes);
 }
 
 void setupImageViews() {
@@ -454,8 +458,12 @@ bool checkDeviceExtensionSupport(VkPhysicalDevice device) {
 }
 
 bool isDeviceSuitable(VkPhysicalDevice device) {
-    // VkPhysicalDeviceProperties device_properties;
-    // vkGetPhysicalDeviceProperties(g_physical_device, &device_properties);
+    VkPhysicalDeviceProperties device_properties;
+    vkGetPhysicalDeviceProperties(device, &device_properties);
+    bool is_discrete = false;
+    if (device_properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
+		  is_discrete = true; 
+    }
 
     // VkPhysicalDeviceFeatures device_features;
     // vkGetPhysicalDeviceFeatures(device, &device_features);
@@ -473,7 +481,7 @@ bool isDeviceSuitable(VkPhysicalDevice device) {
         hkArray_VkPresentModeKHR_destroy(&swapchain_support.present_modes);
     }
 
-    return queue_families_has_value && extensions_supported && swapchain_adequate;
+    return queue_families_has_value && extensions_supported && swapchain_adequate && is_discrete;
 }
 
 void setupPhysicalDevice() {
@@ -500,17 +508,22 @@ void setupLogicalDevice() {
     bool has_value = false;
     QueueFamilyIndices indices = findQueueFamilies(g_physical_device, &has_value);
 
-    hkArray_VkDeviceQueueCreateInfo queue_create_infos = hkArray_VkDeviceQueueCreateInfo_create(0);
+    // hkArray_VkDeviceQueueCreateInfo queue_create_infos = hkArray_VkDeviceQueueCreateInfo_create(0);
     float queue_priority = 1.0f;
-    for (i32 i = 0; i < 1; ++i) {
-        VkDeviceQueueCreateInfo queue_create_info = {0};
-        queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        queue_create_info.queueFamilyIndex = indices.graphics_family;
-        queue_create_info.queueCount = 1;
-        queue_create_info.pQueuePriorities = &queue_priority;
-        queue_create_infos.data = hkArray_VkDeviceQueueCreateInfo_append(&queue_create_infos, queue_create_info);
-    }
+    //for (i32 i = 0; i < 1; ++i) {
+    //    VkDeviceQueueCreateInfo queue_create_info = {0};
+    //    queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    //    queue_create_info.queueFamilyIndex = indices.graphics_family;
+    //    queue_create_info.queueCount = 1;
+    //    queue_create_info.pQueuePriorities = &queue_priority;
+    //    // queue_create_infos.data = hkArray_VkDeviceQueueCreateInfo_append(&queue_create_infos, queue_create_info);
+    //}
 
+	VkDeviceQueueCreateInfo queue_create_info = {0};
+	queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+	queue_create_info.queueFamilyIndex = indices.graphics_family;
+	queue_create_info.queueCount = 1;
+	queue_create_info.pQueuePriorities = &queue_priority;
     // VkDeviceQueueCreateInfo queue_create_info = {0};
     // queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
     // queue_create_info.queueFamilyIndex = indices.graphics_family;
@@ -522,8 +535,8 @@ void setupLogicalDevice() {
 
     VkDeviceCreateInfo create_info = {0};
     create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    create_info.pQueueCreateInfos = queue_create_infos.data;
-    create_info.queueCreateInfoCount = (u32)queue_create_infos.length;
+    create_info.pQueueCreateInfos = &queue_create_info;  // .data;
+    create_info.queueCreateInfoCount = 1;
 
     create_info.pEnabledFeatures = &device_features;
 
@@ -541,7 +554,7 @@ void setupLogicalDevice() {
 
     vkGetDeviceQueue(g_logical_device, indices.graphics_family, 0, &g_graphics_queue);
     vkGetDeviceQueue(g_logical_device, indices.present_family, 0, &g_present_queue);
-    hkArray_VkDeviceQueueCreateInfo_destroy(&queue_create_infos);
+    // hkArray_VkDeviceQueueCreateInfo_destroy(&queue_create_infos);
 }
 
 //
